@@ -14,6 +14,8 @@ export default function StudentEnrollment() {
   const [classes, setClasses] = useState<Class[]>([])
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     // Personal Information
     firstName: '',
@@ -76,11 +78,34 @@ export default function StudentEnrollment() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setPhotoFile(file)
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
 
     try {
+      let photoPath = undefined
+      
+      // Upload photo if selected
+      if (photoFile) {
+        const uploadResponse = await api.uploadProfilePhoto(photoFile)
+        if (uploadResponse.success) {
+          photoPath = uploadResponse.data.path
+        }
+      }
+
       // Transform form data to match backend schema
       const studentData = {
         firstName: formData.firstName,
@@ -113,6 +138,7 @@ export default function StudentEnrollment() {
           medicalConditions: formData.medicalConditions ? [formData.medicalConditions] : [],
           emergencyContact: formData.emergencyContact,
         },
+        ...(photoPath && { photo: photoPath }),
       }
 
       const response = await api.createStudent(studentData)
@@ -150,6 +176,38 @@ export default function StudentEnrollment() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Profile Picture */}
+        <div className="card">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Profile Picture</h2>
+          <div className="flex items-center space-x-6">
+            <div className="flex-shrink-0">
+              {photoPreview ? (
+                <img
+                  src={photoPreview}
+                  alt="Profile preview"
+                  className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
+                />
+              ) : (
+                <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300">
+                  <span className="text-gray-500 text-sm">No photo</span>
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Upload Profile Picture
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+              />
+              <p className="mt-1 text-xs text-gray-500">JPG, PNG or GIF. Max size: 5MB</p>
+            </div>
+          </div>
+        </div>
+
         {/* Personal Information */}
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Personal Information</h2>

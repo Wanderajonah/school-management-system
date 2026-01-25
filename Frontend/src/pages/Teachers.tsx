@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Search, Edit, Trash2, X, Mail, Phone, Calendar, GraduationCap, Save } from 'lucide-react'
-import api from '../utils/api'
+import api, { getImageUrl } from '../utils/api'
 
 interface Subject {
   _id: string
@@ -28,6 +28,7 @@ interface Teacher {
   gender?: string
   joiningDate?: string
   salary?: number
+  photo?: string
   address?: {
     street?: string
     city?: string
@@ -52,6 +53,8 @@ export default function Teachers() {
   const [classes, setClasses] = useState<Class[]>([])
   const [editFormData, setEditFormData] = useState<any>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null)
+  const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null)
 
   useEffect(() => {
     fetchTeachers()
@@ -122,6 +125,7 @@ export default function Teachers() {
         setSelectedTeacher(response.data)
         // Initialize edit form data
         const teacherData = response.data
+        setEditPhotoPreview(getImageUrl(teacherData.photo, 'default-teacher.jpg'))
         setEditFormData({
           firstName: teacherData.firstName || '',
           lastName: teacherData.lastName || '',
@@ -169,6 +173,7 @@ export default function Teachers() {
 
   const handleCancelEdit = () => {
     setIsEditing(false)
+    setEditPhotoFile(null)
     // Reset form data to original teacher data
     if (selectedTeacher) {
       handleTeacherClick(selectedTeacher)
@@ -178,6 +183,19 @@ export default function Teachers() {
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setEditFormData((prev: any) => ({ ...prev, [name]: value }))
+  }
+
+  const handleEditPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setEditPhotoFile(file)
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setEditPhotoPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
   }
 
   const handleMultiSelect = (name: 'selectedSubjects' | 'selectedClasses', value: string) => {
@@ -197,6 +215,16 @@ export default function Teachers() {
 
     setSubmitting(true)
     try {
+      let photoPath = undefined
+      
+      // Upload new photo if selected
+      if (editPhotoFile) {
+        const uploadResponse = await api.uploadProfilePhoto(editPhotoFile)
+        if (uploadResponse.success) {
+          photoPath = uploadResponse.data.path
+        }
+      }
+
       const teacherData = {
         firstName: editFormData.firstName,
         lastName: editFormData.lastName,
@@ -218,6 +246,7 @@ export default function Teachers() {
         },
         subjects: editFormData.selectedSubjects,
         classes: editFormData.selectedClasses,
+        ...(photoPath && { photo: photoPath }),
       }
 
       const response = await api.updateTeacher(selectedTeacher._id, teacherData)
@@ -322,7 +351,24 @@ export default function Teachers() {
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                            {getImageUrl(teacher.photo, 'default-teacher.jpg') ? (
+                              <img
+                                src={getImageUrl(teacher.photo, 'default-teacher.jpg')!}
+                                alt={fullName}
+                                className="w-10 h-10 rounded-full object-cover mr-3 border-2 border-gray-200"
+                                onError={(e) => {
+                                  // Fallback to initial if image fails to load
+                                  const target = e.target as HTMLImageElement
+                                  const fallback = target.nextElementSibling as HTMLElement
+                                  target.style.display = 'none'
+                                  if (fallback) fallback.style.display = 'flex'
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3"
+                              style={{ display: getImageUrl(teacher.photo, 'default-teacher.jpg') ? 'none' : 'flex' }}
+                            >
                               <span className="text-green-600 font-medium">
                                 {teacher.firstName.charAt(0)}
                               </span>
@@ -437,6 +483,38 @@ export default function Teachers() {
               <div className="p-6 space-y-6">
                 {/* Edit Form */}
                 <div className="space-y-6">
+                  {/* Profile Picture */}
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Profile Picture</h4>
+                    <div className="flex items-center space-x-6">
+                      <div className="flex-shrink-0">
+                        {editPhotoPreview ? (
+                          <img
+                            src={editPhotoPreview}
+                            alt="Profile preview"
+                            className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
+                          />
+                        ) : (
+                          <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300">
+                            <span className="text-gray-500 text-sm">No photo</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Upload New Profile Picture
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleEditPhotoChange}
+                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">JPG, PNG or GIF. Max size: 5MB</p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Personal Information */}
                   <div>
                     <h4 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h4>
@@ -703,7 +781,23 @@ export default function Teachers() {
               <div className="p-6 space-y-6">
                 {/* Teacher Header */}
                 <div className="flex items-start space-x-6">
-                  <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
+                  {getImageUrl(selectedTeacher.photo, 'default-teacher.jpg') ? (
+                    <img
+                      src={getImageUrl(selectedTeacher.photo, 'default-teacher.jpg')!}
+                      alt={`${selectedTeacher.firstName} ${selectedTeacher.lastName}`}
+                      className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement
+                        const fallback = target.nextElementSibling as HTMLElement
+                        target.style.display = 'none'
+                        if (fallback) fallback.style.display = 'flex'
+                      }}
+                    />
+                  ) : null}
+                  <div 
+                    className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center"
+                    style={{ display: getImageUrl(selectedTeacher.photo, 'default-teacher.jpg') ? 'none' : 'flex' }}
+                  >
                     <span className="text-3xl font-bold text-green-600">
                       {selectedTeacher.firstName.charAt(0)}
                     </span>

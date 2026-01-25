@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Search, Filter, Edit, Trash2 } from 'lucide-react'
-import api from '../utils/api'
+import api, { getImageUrl } from '../utils/api'
 
 interface Student {
   _id: string
@@ -11,6 +11,7 @@ interface Student {
   email: string
   phone?: string
   status: string
+  photo?: string
   class?: {
     _id: string
     name: string
@@ -174,7 +175,24 @@ export default function Students() {
                     <tr key={student._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Link to={`/students/${student._id}`} className="flex items-center">
-                          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center mr-3">
+                          {getImageUrl(student.photo, 'default-student.jpg') ? (
+                            <img
+                              src={getImageUrl(student.photo, 'default-student.jpg')!}
+                              alt={fullName}
+                              className="w-10 h-10 rounded-full object-cover mr-3 border-2 border-gray-200"
+                              onError={(e) => {
+                                // Fallback to initial if image fails to load
+                                const target = e.target as HTMLImageElement
+                                const fallback = target.nextElementSibling as HTMLElement
+                                target.style.display = 'none'
+                                if (fallback) fallback.style.display = 'flex'
+                              }}
+                            />
+                          ) : null}
+                          <div 
+                            className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center mr-3"
+                            style={{ display: getImageUrl(student.photo, 'default-student.jpg') ? 'none' : 'flex' }}
+                          >
                             <span className="text-primary-600 font-medium">
                               {student.firstName.charAt(0)}
                             </span>

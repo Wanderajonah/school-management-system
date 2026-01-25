@@ -1,4 +1,11 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL || 'http://localhost:5000';
+
+// Helper function to get image URL
+export const getImageUrl = (photoPath?: string, defaultPath?: string): string | null => {
+  if (!photoPath || photoPath === defaultPath) return null;
+  return `${API_SERVER_URL}${photoPath}`;
+};
 
 // Get token from localStorage
 const getToken = (): string | null => {
@@ -285,6 +292,29 @@ export const api = {
   getAttendanceOverview: () => apiRequest('/dashboard/attendance-overview'),
 
   getClassDistribution: () => apiRequest('/dashboard/class-distribution'),
+
+  // Upload
+  uploadProfilePhoto: async (file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    
+    const token = getToken();
+    const response = await fetch(`${API_BASE_URL}/upload/profile`, {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Upload failed');
+    }
+
+    return data;
+  },
 };
 
 export default api;
