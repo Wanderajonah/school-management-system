@@ -371,12 +371,12 @@ export default function Teachers() {
                             >
                               <span className="text-green-600 font-medium">
                                 {teacher.firstName.charAt(0)}
-                              </span>
-                            </div>
-                            <div>
+                  </span>
+                </div>
+                <div>
                               <div className="text-sm font-medium text-gray-900">{fullName}</div>
-                            </div>
-                          </div>
+                </div>
+              </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{teacher.teacherId}</div>
@@ -400,8 +400,8 @@ export default function Teachers() {
                                 : 'bg-gray-100 text-gray-800'
                             }`}
                           >
-                            {teacher.status}
-                          </span>
+                {teacher.status}
+              </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
@@ -927,9 +927,9 @@ export default function Teachers() {
                           </p>
                         </div>
                       )}
-                    </div>
-                  </div>
                 </div>
+              </div>
+            </div>
 
                 {/* Subjects and Classes */}
                 {(selectedTeacher.subjects?.length > 0 || selectedTeacher.classes?.length > 0) && (
@@ -1000,8 +1000,8 @@ export default function Teachers() {
                   <button
                     onClick={handleEdit}
                     className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors flex items-center space-x-2"
-                  >
-                    <Edit className="w-4 h-4" />
+              >
+                <Edit className="w-4 h-4" />
                     <span>Edit Teacher</span>
                   </button>
                   <Link
@@ -1010,12 +1010,12 @@ export default function Teachers() {
                     className="px-4 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
                   >
                     View Full Details
-                  </Link>
+              </Link>
                 </>
               )}
             </div>
           </div>
-        </div>
+      </div>
       )}
     </div>
   )

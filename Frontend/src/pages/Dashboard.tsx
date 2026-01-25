@@ -82,43 +82,43 @@ export default function Dashboard() {
   }, [])
 
   const dashboardStats = [
-    {
-      name: 'Total Students',
+  {
+    name: 'Total Students',
       value: stats.totalStudents.toLocaleString(),
-      change: '+12%',
+    change: '+12%',
       changeType: 'positive' as const,
-      icon: Users,
-      color: 'bg-blue-500',
-      link: '/students',
-    },
-    {
-      name: 'Total Teachers',
+    icon: Users,
+    color: 'bg-blue-500',
+    link: '/students',
+  },
+  {
+    name: 'Total Teachers',
       value: stats.totalTeachers.toLocaleString(),
-      change: '+5%',
+    change: '+5%',
       changeType: 'positive' as const,
-      icon: GraduationCap,
-      color: 'bg-green-500',
-      link: '/teachers',
-    },
-    {
-      name: 'Active Classes',
+    icon: GraduationCap,
+    color: 'bg-green-500',
+    link: '/teachers',
+  },
+  {
+    name: 'Active Classes',
       value: stats.totalClasses.toLocaleString(),
-      change: '+2',
+    change: '+2',
       changeType: 'positive' as const,
-      icon: BookOpen,
-      color: 'bg-purple-500',
-      link: '/classes',
-    },
-    {
-      name: 'Today\'s Attendance',
+    icon: BookOpen,
+    color: 'bg-purple-500',
+    link: '/classes',
+  },
+  {
+    name: 'Today\'s Attendance',
       value: `${stats.todayAttendance}%`,
-      change: '+2%',
+    change: '+2%',
       changeType: 'positive' as const,
-      icon: Calendar,
-      color: 'bg-orange-500',
-      link: '/attendance',
-    },
-  ]
+    icon: Calendar,
+    color: 'bg-orange-500',
+    link: '/attendance',
+  },
+]
   return (
     <div className="space-y-6">
       <div>
