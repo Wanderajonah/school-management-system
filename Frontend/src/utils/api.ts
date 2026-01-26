@@ -29,7 +29,9 @@ const apiRequest = async (
   };
 
   try {
+    console.log(`Making API request to: ${API_BASE_URL}${endpoint}`);
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    console.log(`Response status: ${response.status} for ${endpoint}`);
     
     // Check if response is JSON
     let data;
@@ -42,6 +44,7 @@ const apiRequest = async (
     }
 
     if (!response.ok) {
+      console.error(`API error for ${endpoint}:`, data);
       // Handle 401 Unauthorized - redirect to login
       if (response.status === 401) {
         localStorage.removeItem('token');
@@ -50,7 +53,11 @@ const apiRequest = async (
           window.location.href = '/login';
         }
       }
-      throw new Error(data.message || data.error || `Request failed with status ${response.status}`);
+      // Create error object that preserves validation errors
+      const error: any = new Error(data.message || data.error || `Request failed with status ${response.status}`);
+      error.errors = data.errors; // Preserve validation errors array
+      error.response = data; // Preserve full response
+      throw error;
     }
 
     return data;
@@ -208,6 +215,14 @@ export const api = {
     return apiRequest(`/attendance?${query.toString()}`);
   },
 
+  getStudentAttendance: (studentId: string, params?: { term?: string; academicYear?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.term) query.append('term', params.term);
+    if (params?.academicYear) query.append('academicYear', params.academicYear);
+    const qs = query.toString();
+    return apiRequest(`/attendance/student/${studentId}${qs ? `?${qs}` : ''}`);
+  },
+
   markAttendance: (attendanceData: any) =>
     apiRequest('/attendance', {
       method: 'POST',
@@ -289,12 +304,99 @@ export const api = {
 
   getDashboardActivities: () => apiRequest('/dashboard/activities'),
 
-  getAttendanceOverview: () => apiRequest('/dashboard/attendance-overview'),
+  getAttendanceOverview: (params?: { days?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.days) query.append('days', params.days.toString());
+    const qs = query.toString();
+    return apiRequest(`/dashboard/attendance-overview${qs ? `?${qs}` : ''}`);
+  },
 
   getClassDistribution: () => apiRequest('/dashboard/class-distribution'),
 
+  getGenderDistribution: () => apiRequest('/dashboard/gender-distribution'),
+
   // Upload
   uploadProfilePhoto: async (file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    
+    const token = getToken();
+    const response = await fetch(`${API_BASE_URL}/upload/profile`, {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Upload failed');
+    }
+
+    return data;
+  },
+
+  // Notifications (optional - for future API integration)
+  getNotifications: (params?: { page?: number; limit?: number; unreadOnly?: boolean }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.limit) query.append('limit', params.limit.toString());
+    if (params?.unreadOnly) query.append('unreadOnly', 'true');
+    return apiRequest(`/notifications?${query.toString()}`);
+  },
+
+  markNotificationAsRead: (id: string) =>
+    apiRequest(`/notifications/${id}/read`, {
+      method: 'PUT',
+    }),
+
+  markAllNotificationsAsRead: () =>
+    apiRequest('/notifications/read-all', {
+      method: 'PUT',
+    }),
+
+  getUnreadNotificationCount: () => apiRequest('/notifications/unread-count'),
+
+  // Events
+  getEvents: (params?: { page?: number; limit?: number; search?: string; startDate?: string; endDate?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.limit) query.append('limit', params.limit.toString());
+    if (params?.search) query.append('search', params.search);
+    if (params?.startDate) query.append('startDate', params.startDate);
+    if (params?.endDate) query.append('endDate', params.endDate);
+    return apiRequest(`/events?${query.toString()}`);
+  },
+
+  getEventsForCalendar: (params: { startDate: string; endDate: string }) => {
+    const query = new URLSearchParams();
+    query.append('startDate', params.startDate);
+    query.append('endDate', params.endDate);
+    return apiRequest(`/events/calendar?${query.toString()}`);
+  },
+
+  getEvent: (id: string) => apiRequest(`/events/${id}`),
+
+  createEvent: (eventData: { title: string; description?: string; date: string; image?: string }) =>
+    apiRequest('/events', {
+      method: 'POST',
+      body: JSON.stringify(eventData),
+    }),
+
+  updateEvent: (id: string, eventData: { title?: string; description?: string; date?: string; image?: string }) =>
+    apiRequest(`/events/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(eventData),
+    }),
+
+  deleteEvent: (id: string) =>
+    apiRequest(`/events/${id}`, {
+      method: 'DELETE',
+    }),
+
+  uploadEventImage: async (file: File): Promise<any> => {
     const formData = new FormData();
     formData.append('photo', file);
     

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Calendar, CheckCircle, XCircle, Clock, Users } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Users } from 'lucide-react'
 import { format } from 'date-fns'
 
 const classes = ['S1', 'S2', 'S3', 'S4']

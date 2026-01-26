@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Mail, Phone, Calendar, Edit } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, Edit } from 'lucide-react'
 
 // Mock data
 const teacherData = {

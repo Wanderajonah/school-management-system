@@ -100,19 +100,55 @@ studentSchema.virtual('name').get(function () {
   return `${this.firstName} ${this.lastName}`;
 });
 
-// Generate student ID before validation and saving
-studentSchema.pre('validate', async function (next) {
-  if (this.isNew && !this.studentId) {
-    const count = await this.constructor.countDocuments();
-    this.studentId = `STU${String(count + 1).padStart(3, '0')}`;
-  }
-  next();
-});
-
+// Generate unique student ID before saving
 studentSchema.pre('save', async function (next) {
   if (this.isNew && !this.studentId) {
-    const count = await this.constructor.countDocuments();
-    this.studentId = `STU${String(count + 1).padStart(3, '0')}`;
+    let attempts = 0;
+    let isUnique = false;
+    let generatedId;
+    
+    // Retry up to 10 times to ensure uniqueness
+    while (!isUnique && attempts < 10) {
+      // Get the highest existing studentId number
+      const lastStudent = await this.constructor
+        .findOne({ studentId: { $exists: true } })
+        .sort({ studentId: -1 })
+        .select('studentId')
+        .lean();
+      
+      let nextNumber = 1;
+      if (lastStudent && lastStudent.studentId) {
+        // Extract number from studentId (e.g., "STU001" -> 1)
+        const match = lastStudent.studentId.match(/\d+$/);
+        if (match) {
+          nextNumber = parseInt(match[0], 10) + 1;
+        }
+      } else {
+        // If no students exist, get count as fallback
+        const count = await this.constructor.countDocuments();
+        nextNumber = count + 1;
+      }
+      
+      generatedId = `STU${String(nextNumber).padStart(3, '0')}`;
+      
+      // Check if this ID already exists
+      const exists = await this.constructor.findOne({ studentId: generatedId });
+      if (!exists) {
+        isUnique = true;
+      } else {
+        // If exists, increment and try again
+        nextNumber++;
+        attempts++;
+      }
+    }
+    
+    // If still not unique after retries, add timestamp to make it unique
+    if (!isUnique) {
+      const timestamp = Date.now().toString().slice(-6);
+      generatedId = `STU${timestamp}`;
+    }
+    
+    this.studentId = generatedId;
   }
   next();
 });

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Search, Edit, Trash2, X, Mail, Phone, Calendar, GraduationCap, Save } from 'lucide-react'
 import api, { getImageUrl } from '../utils/api'
+import { useNotifications } from '../context/NotificationContext'
 
 interface Subject {
   _id: string
@@ -41,6 +42,7 @@ interface Teacher {
 }
 
 export default function Teachers() {
+  const { addNotification } = useNotifications()
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -101,9 +103,20 @@ export default function Teachers() {
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent opening modal when clicking delete
+    const teacherToDelete = teachers.find(t => t._id === id)
+    const teacherName = teacherToDelete ? `${teacherToDelete.firstName} ${teacherToDelete.lastName}` : 'Teacher'
+    
     if (window.confirm('Are you sure you want to delete this teacher?')) {
       try {
         await api.deleteTeacher(id)
+        
+        addNotification({
+          title: 'Teacher Removed',
+          message: `${teacherName} has been removed from the staff`,
+          type: 'warning',
+          link: '/teachers',
+        })
+        
         fetchTeachers()
         if (selectedTeacher?._id === id) {
           setSelectedTeacher(null)
@@ -371,12 +384,12 @@ export default function Teachers() {
                             >
                               <span className="text-green-600 font-medium">
                                 {teacher.firstName.charAt(0)}
-                              </span>
-                            </div>
-                            <div>
+                  </span>
+                </div>
+                <div>
                               <div className="text-sm font-medium text-gray-900">{fullName}</div>
-                            </div>
-                          </div>
+                </div>
+              </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{teacher.teacherId}</div>
@@ -400,8 +413,8 @@ export default function Teachers() {
                                 : 'bg-gray-100 text-gray-800'
                             }`}
                           >
-                            {teacher.status}
-                          </span>
+                {teacher.status}
+              </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
@@ -927,18 +940,18 @@ export default function Teachers() {
                           </p>
                         </div>
                       )}
-                    </div>
-                  </div>
                 </div>
+              </div>
+            </div>
 
                 {/* Subjects and Classes */}
-                {(selectedTeacher.subjects?.length > 0 || selectedTeacher.classes?.length > 0) && (
+                {((selectedTeacher.subjects?.length ?? 0) > 0 || (selectedTeacher.classes?.length ?? 0) > 0) && (
                   <div className="space-y-4">
-                    {selectedTeacher.subjects && selectedTeacher.subjects.length > 0 && (
+                    {(selectedTeacher.subjects?.length ?? 0) > 0 && (
                       <div>
                         <h4 className="text-lg font-semibold text-gray-900 mb-3">Assigned Subjects</h4>
                         <div className="flex flex-wrap gap-2">
-                          {selectedTeacher.subjects.map((subject) => (
+                          {selectedTeacher.subjects!.map((subject) => (
                             <span
                               key={subject._id}
                               className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm"
@@ -949,11 +962,11 @@ export default function Teachers() {
                         </div>
                       </div>
                     )}
-                    {selectedTeacher.classes && selectedTeacher.classes.length > 0 && (
+                    {(selectedTeacher.classes?.length ?? 0) > 0 && (
                       <div>
                         <h4 className="text-lg font-semibold text-gray-900 mb-3">Assigned Classes</h4>
                         <div className="flex flex-wrap gap-2">
-                          {selectedTeacher.classes.map((cls) => (
+                          {selectedTeacher.classes!.map((cls) => (
                             <span
                               key={cls._id}
                               className="px-3 py-1 bg-purple-100 text-purple-800 rounded-lg text-sm"
@@ -1000,8 +1013,8 @@ export default function Teachers() {
                   <button
                     onClick={handleEdit}
                     className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors flex items-center space-x-2"
-                  >
-                    <Edit className="w-4 h-4" />
+              >
+                <Edit className="w-4 h-4" />
                     <span>Edit Teacher</span>
                   </button>
                   <Link
@@ -1010,12 +1023,12 @@ export default function Teachers() {
                     className="px-4 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
                   >
                     View Full Details
-                  </Link>
+              </Link>
                 </>
               )}
             </div>
           </div>
-        </div>
+      </div>
       )}
     </div>
   )

@@ -23,10 +23,12 @@ import Schedule from './pages/Schedule'
 import Fees from './pages/Fees'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
+import { NotificationProvider } from './context/NotificationContext'
 
 function App() {
   return (
-    <Router>
+    <NotificationProvider>
+      <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Layout />}>
@@ -55,6 +57,7 @@ function App() {
         </Route>
       </Routes>
     </Router>
+    </NotificationProvider>
   )
 }
 

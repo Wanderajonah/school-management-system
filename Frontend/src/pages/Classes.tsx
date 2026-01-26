@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Users, GraduationCap, Calendar, BookOpen } from 'lucide-react'
+import { Plus, Search, Users, GraduationCap, BookOpen } from 'lucide-react'
 
 // Lower Secondary Classes (S1-S4)
 const classes = [

@@ -14,7 +14,14 @@ const errorHandler = (err, req, res, next) => {
   // Mongoose duplicate key
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue)[0];
-    const message = `Duplicate field value entered for ${field}`;
+    let message;
+    if (field === 'studentId') {
+      message = 'A student with this ID already exists. Please try again - the system will generate a new unique ID.';
+    } else if (field === 'email') {
+      message = 'A student with this email already exists. Please use a different email address.';
+    } else {
+      message = `Duplicate field value entered for ${field}`;
+    }
     error = { message, statusCode: 400 };
   }
 

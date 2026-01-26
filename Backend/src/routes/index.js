@@ -9,6 +9,7 @@ const gradeRoutes = require('./gradeRoutes');
 const feeRoutes = require('./feeRoutes');
 const dashboardRoutes = require('./dashboardRoutes');
 const uploadRoutes = require('./uploadRoutes');
+const eventRoutes = require('./eventRoutes');
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ router.use('/grades', gradeRoutes);
 router.use('/fees', feeRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/upload', uploadRoutes);
+router.use('/events', eventRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

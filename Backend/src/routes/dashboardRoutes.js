@@ -4,6 +4,7 @@ const {
   getRecentActivities,
   getAttendanceOverview,
   getClassDistribution,
+  getGenderDistribution,
 } = require('../controllers/dashboardController');
 const { protect } = require('../middleware/auth');
 
@@ -16,5 +17,6 @@ router.route('/stats').get(getDashboardStats);
 router.route('/activities').get(getRecentActivities);
 router.route('/attendance-overview').get(getAttendanceOverview);
 router.route('/class-distribution').get(getClassDistribution);
+router.route('/gender-distribution').get(getGenderDistribution);
 
 module.exports = router;

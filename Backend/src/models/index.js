@@ -7,6 +7,7 @@ const Attendance = require('./Attendance');
 const Grade = require('./Grade');
 const FeeStructure = require('./FeeStructure');
 const Payment = require('./Payment');
+const Event = require('./Event');
 
 module.exports = {
   User,
@@ -18,4 +19,5 @@ module.exports = {
   Grade,
   FeeStructure,
   Payment,
+  Event,
 };
