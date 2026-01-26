@@ -69,7 +69,36 @@ exports.getStudent = asyncHandler(async (req, res, next) => {
 // @route   POST /api/students
 // @access  Private
 exports.createStudent = asyncHandler(async (req, res, next) => {
-  const student = await Student.create(req.body);
+  // Ensure studentId is not sent from frontend (it's auto-generated)
+  delete req.body.studentId;
+  
+  let student;
+  let attempts = 0;
+  const maxAttempts = 3;
+  
+  // Retry logic to handle potential race conditions with studentId generation
+  while (attempts < maxAttempts) {
+    try {
+      student = await Student.create(req.body);
+      break; // Success, exit loop
+    } catch (error) {
+      // If it's a duplicate key error for studentId, retry
+      if (error.code === 11000 && error.keyPattern && error.keyPattern.studentId) {
+        attempts++;
+        if (attempts >= maxAttempts) {
+          // If max attempts reached, generate a unique ID with timestamp
+          req.body.studentId = `STU${Date.now().toString().slice(-8)}`;
+          student = await Student.create(req.body);
+          break;
+        }
+        // Wait a bit before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 100 * attempts));
+        continue;
+      }
+      // If it's not a studentId duplicate error, throw it
+      throw error;
+    }
+  }
 
   res.status(201).json({
     success: true,

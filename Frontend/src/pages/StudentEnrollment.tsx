@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
 import api from '../utils/api'
+import { useNotifications } from '../context/NotificationContext'
 
 interface Class {
   _id: string
@@ -11,6 +12,7 @@ interface Class {
 
 export default function StudentEnrollment() {
   const navigate = useNavigate()
+  const { addNotification } = useNotifications()
   const [classes, setClasses] = useState<Class[]>([])
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -107,51 +109,105 @@ export default function StudentEnrollment() {
       }
 
       // Transform form data to match backend schema
-      const studentData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        dateOfBirth: formData.dateOfBirth || undefined,
-        gender: formData.gender || undefined,
+      // Helper to convert empty strings to undefined
+      const cleanValue = (value: string) => (value && value.trim() ? value.trim() : undefined);
+      
+      const studentData: any = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
         class: formData.class, // This should be the class ObjectId
         enrollmentDate: formData.enrollmentDate || new Date().toISOString(),
         status: 'Active',
         boardingStatus: formData.stream === 'Boarding' ? 'Boarding' : 'Day',
-        address: {
-          street: formData.address,
-          city: formData.city,
-          state: formData.state,
-          zipCode: formData.zipCode,
-        },
-        guardian: {
-          name: formData.guardianName,
-          relationship: formData.guardianRelationship,
-          phone: formData.guardianPhone,
-          email: formData.guardianEmail,
-          address: formData.guardianAddress,
-        },
-        previousSchool: {
-          name: formData.previousSchool,
-        },
-        medicalInfo: {
-          medicalConditions: formData.medicalConditions ? [formData.medicalConditions] : [],
-          emergencyContact: formData.emergencyContact,
-        },
-        ...(photoPath && { photo: photoPath }),
+      };
+
+      // Add optional fields only if they have values
+      if (formData.phone) studentData.phone = cleanValue(formData.phone);
+      if (formData.dateOfBirth) studentData.dateOfBirth = formData.dateOfBirth;
+      if (formData.gender) studentData.gender = formData.gender;
+
+      // Address object - only include if at least one field has value
+      const addressFields = {
+        street: cleanValue(formData.address),
+        city: cleanValue(formData.city),
+        state: cleanValue(formData.state),
+        zipCode: cleanValue(formData.zipCode),
+      };
+      if (Object.values(addressFields).some(v => v !== undefined)) {
+        studentData.address = addressFields;
+      }
+
+      // Guardian object - only include if at least one field has value
+      const guardianFields = {
+        name: cleanValue(formData.guardianName),
+        relationship: cleanValue(formData.guardianRelationship),
+        phone: cleanValue(formData.guardianPhone),
+        email: cleanValue(formData.guardianEmail),
+        address: cleanValue(formData.guardianAddress),
+      };
+      if (Object.values(guardianFields).some(v => v !== undefined)) {
+        studentData.guardian = guardianFields;
+      }
+
+      // Previous school - only include if has value
+      if (formData.previousSchool) {
+        studentData.previousSchool = {
+          name: cleanValue(formData.previousSchool),
+        };
+      }
+
+      // Medical info - only include if has value
+      const medicalFields: any = {};
+      if (formData.medicalConditions) {
+        medicalFields.medicalConditions = [cleanValue(formData.medicalConditions)].filter(Boolean);
+      }
+      if (formData.emergencyContact) {
+        medicalFields.emergencyContact = cleanValue(formData.emergencyContact);
+      }
+      if (Object.keys(medicalFields).length > 0) {
+        studentData.medicalInfo = medicalFields;
+      }
+
+      // Add photo if uploaded
+      if (photoPath) {
+        studentData.photo = photoPath;
       }
 
       const response = await api.createStudent(studentData)
       
       if (response.success) {
+        // Get class name for notification
+        const className = classes.find(c => c._id === formData.class)?.name || 'a class'
+        const studentName = `${formData.firstName} ${formData.lastName}`
+        
+        addNotification({
+          title: 'New Student Enrolled',
+          message: `${studentName} has been enrolled in ${className}`,
+          type: 'success',
+          link: '/students',
+        })
+        
         alert('Student enrolled successfully!')
         navigate('/students')
       } else {
-        alert('Failed to enroll student. Please try again.')
+        // Handle validation errors from backend
+        const errorMessage = response.errors 
+          ? response.errors.map((err: any) => `${err.field}: ${err.message}`).join('\n')
+          : response.message || 'Failed to enroll student. Please try again.'
+        alert(errorMessage)
       }
     } catch (error: any) {
       console.error('Error enrolling student:', error)
-      alert(error.message || 'Failed to enroll student. Please check all required fields.')
+      // Check if error has validation details
+      let errorMessage = error.message || 'Failed to enroll student. Please check all required fields.'
+      
+      // Try to parse validation errors if they exist
+      if (error.errors && Array.isArray(error.errors)) {
+        errorMessage = error.errors.map((err: any) => `${err.field || 'Field'}: ${err.message || err.msg}`).join('\n')
+      }
+      
+      alert(errorMessage)
     } finally {
       setSubmitting(false)
     }
@@ -309,13 +365,14 @@ export default function StudentEnrollment() {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Contact Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="label">Email</label>
+              <label className="label">Email *</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 className="input-field"
+                required
               />
             </div>
             <div>

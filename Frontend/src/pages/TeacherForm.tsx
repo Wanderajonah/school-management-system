@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
 import api from '../utils/api'
+import { useNotifications } from '../context/NotificationContext'
 
 interface Subject {
   _id: string
@@ -16,6 +17,7 @@ interface Class {
 
 export default function TeacherForm() {
   const navigate = useNavigate()
+  const { addNotification } = useNotifications()
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [classes, setClasses] = useState<Class[]>([])
   const [loading, setLoading] = useState(false)
@@ -147,6 +149,16 @@ export default function TeacherForm() {
       const response = await api.createTeacher(teacherData)
       
       if (response.success) {
+        const teacherName = `${formData.firstName} ${formData.lastName}`
+        const specialization = formData.specialization || 'General'
+        
+        addNotification({
+          title: 'New Teacher Added',
+          message: `${teacherName} has been added to the staff (${specialization})`,
+          type: 'success',
+          link: '/teachers',
+        })
+        
         alert('Teacher added successfully!')
         navigate('/teachers')
       } else {

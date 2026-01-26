@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Filter, Edit, Trash2, X, Mail, Phone, Calendar, Save, User } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, X, Mail, Phone, Calendar, Save, User } from 'lucide-react'
 import api, { getImageUrl } from '../utils/api'
+import { useNotifications } from '../context/NotificationContext'
 
 interface Class {
   _id: string
@@ -43,10 +44,10 @@ interface Student {
 }
 
 export default function Students() {
+  const { addNotification } = useNotifications()
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
@@ -97,9 +98,20 @@ export default function Students() {
 
   const handleDelete = async (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation() // Prevent opening modal when clicking delete
+    const studentToDelete = students.find(s => s._id === id)
+    const studentName = studentToDelete ? `${studentToDelete.firstName} ${studentToDelete.lastName}` : 'Student'
+    
     if (window.confirm('Are you sure you want to delete this student?')) {
       try {
         await api.deleteStudent(id)
+        
+        addNotification({
+          title: 'Student Deleted',
+          message: `${studentName} has been removed from the system`,
+          type: 'warning',
+          link: '/students',
+        })
+        
         fetchStudents()
         if (selectedStudent?._id === id) {
           setSelectedStudent(null)
@@ -285,176 +297,145 @@ export default function Students() {
         </div>
       </div>
 
-      {/* Search and Filters */}
+      {/* Search */}
       <div className="card">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search students by name, ID, or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-field pl-10"
-            />
-          </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="btn-secondary flex items-center space-x-2"
-          >
-            <Filter className="w-5 h-5" />
-            <span>Filters</span>
-          </button>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search students by name, ID, or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="input-field pl-10"
+          />
         </div>
-
-        {showFilters && (
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
-            <select className="input-field">
-              <option>All Classes</option>
-              <option>S1</option>
-              <option>S2</option>
-              <option>S3</option>
-              <option>S4</option>
-            </select>
-            <select className="input-field">
-              <option>All Status</option>
-              <option>Active</option>
-              <option>Inactive</option>
-            </select>
-            <select className="input-field">
-              <option>Sort By</option>
-              <option>Name A-Z</option>
-              <option>Name Z-A</option>
-              <option>Newest First</option>
-            </select>
-          </div>
-        )}
       </div>
 
       {/* Students Table */}
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Student
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Student ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Class
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                    Loading students...
-                  </td>
-                </tr>
-              ) : filteredStudents.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                    No students found
-                  </td>
-                </tr>
-              ) : (
-                filteredStudents.map((student) => {
-                  const fullName = `${student.firstName} ${student.lastName}`
-                  return (
-                    <tr
-                      key={student._id}
-                      onClick={() => handleStudentClick(student)}
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {getImageUrl(student.photo, 'default-student.jpg') ? (
-                            <img
-                              src={getImageUrl(student.photo, 'default-student.jpg')!}
-                              alt={fullName}
-                              className="w-10 h-10 rounded-full object-cover mr-3 border-2 border-gray-200"
-                              onError={(e) => {
-                                // Fallback to initial if image fails to load
-                                const target = e.target as HTMLImageElement
-                                const fallback = target.nextElementSibling as HTMLElement
-                                target.style.display = 'none'
-                                if (fallback) fallback.style.display = 'flex'
-                              }}
-                            />
-                          ) : null}
-                          <div 
-                            className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center mr-3"
-                            style={{ display: getImageUrl(student.photo, 'default-student.jpg') ? 'none' : 'flex' }}
-                          >
-                            <span className="text-primary-600 font-medium">
-                              {student.firstName.charAt(0)}
-                            </span>
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Loading students...</div>
+        ) : filteredStudents.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">No students found</div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Student
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Student ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Class
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Phone
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredStudents.map((student) => {
+                    const fullName = `${student.firstName} ${student.lastName}`
+                    return (
+                      <tr
+                        key={student._id}
+                        onClick={() => handleStudentClick(student)}
+                        className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            {getImageUrl(student.photo, 'default-student.jpg') ? (
+                              <img
+                                src={getImageUrl(student.photo, 'default-student.jpg')!}
+                                alt={fullName}
+                                className="w-10 h-10 rounded-full object-cover mr-3 border-2 border-gray-200"
+                                onError={(e) => {
+                                  // Fallback to initial if image fails to load
+                                  const target = e.target as HTMLImageElement
+                                  const fallback = target.nextElementSibling as HTMLElement
+                                  target.style.display = 'none'
+                                  if (fallback) fallback.style.display = 'flex'
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center mr-3"
+                              style={{ display: getImageUrl(student.photo, 'default-student.jpg') ? 'none' : 'flex' }}
+                            >
+                              <span className="text-primary-600 font-medium">
+                                {student.firstName.charAt(0)}
+                              </span>
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{fullName}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{fullName}</div>
-                            <div className="text-sm text-gray-500">{student.email}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{student.studentId}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                            {student.class?.name || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{student.email}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{student.phone || 'N/A'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              student.status === 'Active'
+                                ? 'bg-green-100 text-green-800'
+                                : student.status === 'Graduated'
+                                ? 'bg-blue-100 text-blue-800'
+                                : student.status === 'Transferred'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {student.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end space-x-2">
+                            <Link
+                              to={`/students/${student._id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-primary-600 hover:text-primary-900"
+                            >
+                              <Edit className="w-5 h-5" />
+                            </Link>
+                            <button 
+                              onClick={(e) => handleDelete(student._id, e)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{student.studentId}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                          {student.class?.name || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{student.phone || 'N/A'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            student.status === 'Active'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {student.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end space-x-2">
-                          <Link
-                            to={`/students/${student._id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-primary-600 hover:text-primary-900"
-                          >
-                            <Edit className="w-5 h-5" />
-                          </Link>
-                          <button 
-                            onClick={(e) => handleDelete(student._id, e)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
 
         {/* Pagination */}
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
@@ -479,6 +460,8 @@ export default function Students() {
             </button>
           </div>
         </div>
+      </>
+        )}
       </div>
 
       {/* Student Details Modal */}

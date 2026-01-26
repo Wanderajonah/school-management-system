@@ -272,3 +272,53 @@ exports.getClassDistribution = asyncHandler(async (req, res, next) => {
     data: distribution,
   });
 });
+
+// @desc    Get student gender distribution
+// @route   GET /api/dashboard/gender-distribution
+// @access  Private
+exports.getGenderDistribution = asyncHandler(async (req, res, next) => {
+  console.log('getGenderDistribution called');
+  
+  const distribution = await Student.aggregate([
+    { $match: { status: 'Active' } },
+    {
+      $group: {
+        _id: '$gender',
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  console.log('Distribution result:', distribution);
+
+  // Format the response with default values
+  const result = {
+    Male: 0,
+    Female: 0,
+    Other: 0,
+  };
+
+  distribution.forEach(item => {
+    const gender = item._id;
+    if (gender && result.hasOwnProperty(gender)) {
+      result[gender] = item.count;
+    }
+  });
+
+  const total = result.Male + result.Female + result.Other;
+
+  const responseData = {
+    ...result,
+    total,
+    malePercentage: total > 0 ? Math.round((result.Male / total) * 100) : 0,
+    femalePercentage: total > 0 ? Math.round((result.Female / total) * 100) : 0,
+    otherPercentage: total > 0 ? Math.round((result.Other / total) * 100) : 0,
+  };
+
+  console.log('Sending response:', responseData);
+
+  res.status(200).json({
+    success: true,
+    data: responseData,
+  });
+});

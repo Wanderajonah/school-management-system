@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Calendar, Clock, MapPin } from 'lucide-react'
+import { Calendar, MapPin } from 'lucide-react'
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 const timeSlots = [

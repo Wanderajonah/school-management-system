@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Filter, Award } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 
 const classes = ['S1', 'S2', 'S3', 'S4']
 const subjects = ['Mathematics', 'Science', 'English', 'History']
